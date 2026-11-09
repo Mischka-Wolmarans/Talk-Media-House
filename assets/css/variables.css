@@ -1,0 +1,16 @@
+:root {
+  --clr-bg:#F5F0E8;
+  --clr-text:#0A0A0A;
+  --clr-text-light:#4A4541;
+  --clr-border:rgba(10,10,10,.16);
+  --clr-accent:#C19C87;
+  --clr-white:#FFFFFF;
+  --clr-black:#000000;
+  --rail:103px;
+  --panel:408px;
+  --transition-fast:.18s ease;
+  --transition:.3s ease;
+  --transition-slow:.55s ease;
+  --transition-image:transform .6s cubic-bezier(.2,.65,.3,1);
+  --font-body:"Montserrat",Arial,sans-serif
+}

@@ -1,0 +1,21 @@
+/*=========================================================
+CTA ANIMATIONS START
+=========================================================*/
+.cta-btn {
+  transition:
+  transform .3s ease,
+  background .3s ease,
+  color .3s ease,
+  border-color .3s ease,
+  box-shadow .3s ease;
+}
+.cta-btn:hover {
+  transform:translateY(-3px);
+  box-shadow:0 15px 35px rgba(0,0,0,.18);
+}
+.cta-btn:active {
+  transform:translateY(0);
+}
+/*=========================================================
+CTA ANIMATIONS END
+=========================================================*/
