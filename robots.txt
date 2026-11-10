@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://www.cuttingedgecarpenters.com/sitemap.xml
+Sitemap: https://mischka-wolmarans.github.io/Talk-Media-House/sitemap.xml

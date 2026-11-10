@@ -1,5 +1,5 @@
 /* Retains the original main.js smooth scroll, active links, footer year,
-   700ms ease-out reveal timing and smart mobile header behaviour. */
+   850ms ease-out reveal timing and smart mobile header behaviour. */
 document.addEventListener("DOMContentLoaded", () => {
   const body = document.body;
   const panel = document.getElementById("menu-panel");
@@ -10,6 +10,28 @@ document.addEventListener("DOMContentLoaded", () => {
   const main = document.querySelector("main");
   const reduced = matchMedia("(prefers-reduced-motion: reduce)");
   const mobile = matchMedia("(max-width: 900px)");
+
+  const revealItems = [...document.querySelectorAll(".reveal")];
+  if (!reduced.matches && "IntersectionObserver" in window && revealItems.length) {
+    const revealObserver = new IntersectionObserver(
+      (entries) =>
+        entries.forEach((entry) => {
+          if (!entry.isIntersecting) return;
+          entry.target.classList.add("reveal-visible");
+          revealObserver.unobserve(entry.target);
+        }),
+      { threshold: 0.08, rootMargin: "0px 0px -30px 0px" },
+    );
+
+    document.documentElement.classList.add("js-reveal");
+    revealItems.forEach((item) => {
+      const delay = Number(item.dataset.revealDelay);
+      if (Number.isFinite(delay) && delay > 0) {
+        item.style.setProperty("--reveal-delay", `${delay}ms`);
+      }
+      revealObserver.observe(item);
+    });
+  }
 
   function sync() {
     const open = body.classList.contains("mobile-nav-active");
@@ -123,7 +145,8 @@ document.addEventListener("DOMContentLoaded", () => {
       link.rel = "noopener noreferrer";
     });
 
-    document.getElementById("contact-status").hidden = true;
+    const contactStatus = document.getElementById("contact-status");
+    if (contactStatus) contactStatus.hidden = true;
   } else {
     document.querySelectorAll("[data-whatsapp]").forEach((link) => {
       link.addEventListener("click", () => {
@@ -131,53 +154,77 @@ document.addEventListener("DOMContentLoaded", () => {
           close();
         }
 
-        document.getElementById("contact-status").hidden = false;
+        const contactStatus = document.getElementById("contact-status");
+        if (contactStatus) contactStatus.hidden = false;
       });
     });
   }
 
-  if (config.portfolioUrl && /^https:\/\//.test(config.portfolioUrl)) {
-    document.querySelector("[data-portfolio]").href = config.portfolioUrl;
-  }
-
-  // AOS-compatible local fallback; uploaded vendor files were not supplied.
-  if (
-    typeof AOS === "undefined" &&
-    "IntersectionObserver" in window &&
-    !reduced.matches
-  ) {
-    const observer = new IntersectionObserver(
-      (entries) =>
-        entries.forEach((entry) => {
-          if (entry.isIntersecting) {
-            entry.target.classList.add("is-visible");
-            observer.unobserve(entry.target);
-          }
-        }),
-      { threshold: 0.08, rootMargin: "0px 0px -30px 0px" },
-    );
-
-    document.documentElement.classList.add("js-reveal");
-    document.querySelectorAll("[data-aos]").forEach((element) => {
-      element.style.setProperty(
-        "--reveal-delay",
-        (Number(element.dataset.aosDelay) || 0) + "ms",
-      );
-      observer.observe(element);
-    });
+  const portfolioLink = document.querySelector("[data-portfolio]");
+  if (portfolioLink && config.portfolioUrl && /^https:\/\//.test(config.portfolioUrl)) {
+    portfolioLink.href = config.portfolioUrl;
   }
 
   sync();
 });
 
 document.addEventListener("DOMContentLoaded", () => {
+  const reducedMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  function setServiceExpanded(button, expanded) {
+    const detail = document.getElementById(button.getAttribute("aria-controls"));
+    if (!detail) return;
+    button.setAttribute("aria-expanded", String(expanded));
+    button.querySelector("small").textContent = expanded ? "VIEW LESS" : "VIEW MORE";
+
+    const currentHeight = detail.hidden ? 0 : detail.getBoundingClientRect().height;
+    detail.getAnimations?.().forEach((animation) => animation.cancel());
+    detail.hidden = false;
+    detail.style.overflow = "hidden";
+    detail.style.height = `${currentHeight}px`;
+
+    if (reducedMotion || typeof detail.animate !== "function") {
+      detail.hidden = !expanded;
+      detail.style.removeProperty("height");
+      detail.style.removeProperty("overflow");
+      detail.style.removeProperty("opacity");
+      return;
+    }
+
+    if (expanded) {
+      detail.style.height = "auto";
+      const targetHeight = detail.getBoundingClientRect().height;
+      detail.style.height = "0px";
+      detail.style.opacity = "0";
+      detail.getBoundingClientRect();
+      const animation = detail.animate(
+        [{ height: "0px", opacity: 0 }, { height: `${targetHeight}px`, opacity: 1 }],
+        { duration: 420, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+      );
+      animation.onfinish = () => {
+        detail.style.removeProperty("height");
+        detail.style.removeProperty("overflow");
+        detail.style.removeProperty("opacity");
+      };
+    } else {
+      detail.style.opacity = "1";
+      const animation = detail.animate(
+        [{ height: `${currentHeight}px`, opacity: 1 }, { height: "0px", opacity: 0 }],
+        { duration: 420, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+      );
+      animation.onfinish = () => {
+        detail.hidden = true;
+        detail.style.removeProperty("height");
+        detail.style.removeProperty("overflow");
+        detail.style.removeProperty("opacity");
+      };
+    }
+  }
+
   document.querySelectorAll(".service-toggle").forEach((button) => {
     button.addEventListener("click", () => {
       const expanded = button.getAttribute("aria-expanded") === "true";
-      button.setAttribute("aria-expanded", String(!expanded));
-      const detail = document.getElementById(button.getAttribute("aria-controls"));
-      detail.hidden = expanded;
-      button.querySelector("small").textContent = expanded ? "VIEW MORE" : "VIEW LESS";
+      setServiceExpanded(button, !expanded);
     });
   });
   document.querySelectorAll('.intro-grid a[href^="#service-"]').forEach((link) => {
@@ -185,11 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const service = document.querySelector(link.getAttribute("href"));
       const button = service?.querySelector(".service-toggle");
       if (!button) return;
-      const detail = document.getElementById(button.getAttribute("aria-controls"));
-      button.setAttribute("aria-expanded", "true");
-      if (detail) detail.hidden = false;
-      const label = button.querySelector("small");
-      if (label) label.textContent = "VIEW LESS";
+      setServiceExpanded(button, true);
     });
   });
   const projectMobile = matchMedia("(max-width: 900px)");
@@ -205,13 +248,12 @@ document.addEventListener("DOMContentLoaded", () => {
   projectCards.forEach((card) => {
     setProjectExpanded(card, false);
     card.addEventListener("click", () => {
-      if (!projectMobile.matches) return;
       const expanded = card.getAttribute("aria-expanded") !== "true";
       projectCards.forEach((otherCard) => setProjectExpanded(otherCard, false));
       setProjectExpanded(card, expanded);
     });
     card.addEventListener("keydown", (event) => {
-      if (!projectMobile.matches || (event.key !== "Enter" && event.key !== " ")) return;
+      if (event.key !== "Enter" && event.key !== " ") return;
       event.preventDefault();
       card.click();
     });
