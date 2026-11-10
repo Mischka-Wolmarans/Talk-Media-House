@@ -192,6 +192,33 @@ document.addEventListener("DOMContentLoaded", () => {
       if (label) label.textContent = "VIEW LESS";
     });
   });
+  const projectMobile = matchMedia("(max-width: 900px)");
+  const projectCards = [...document.querySelectorAll(".portfolio-tile")];
+  const setProjectExpanded = (card, expanded) => {
+    card.classList.toggle("is-expanded", expanded);
+    card.setAttribute("aria-expanded", String(expanded));
+    card.querySelector(".portfolio-caption")?.setAttribute(
+      "aria-hidden",
+      String(projectMobile.matches && !expanded),
+    );
+  };
+  projectCards.forEach((card) => {
+    setProjectExpanded(card, false);
+    card.addEventListener("click", () => {
+      if (!projectMobile.matches) return;
+      const expanded = card.getAttribute("aria-expanded") !== "true";
+      projectCards.forEach((otherCard) => setProjectExpanded(otherCard, false));
+      setProjectExpanded(card, expanded);
+    });
+    card.addEventListener("keydown", (event) => {
+      if (!projectMobile.matches || (event.key !== "Enter" && event.key !== " ")) return;
+      event.preventDefault();
+      card.click();
+    });
+  });
+  projectMobile.addEventListener("change", () => {
+    projectCards.forEach((card) => setProjectExpanded(card, false));
+  });
   const year = document.getElementById("year");
   if (year) year.textContent = String(new Date().getFullYear());
 });
